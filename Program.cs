@@ -39,9 +39,12 @@ string recoveredMessage = Encoding.UTF8.GetString(decrypted);
 Console.WriteLine($"Recovered message: {recoveredMessage}");
 Console.WriteLine($"Messages match: {message == recoveredMessage}");
 
-runTamperTest();
+runCipherTextTamperTest();
 
-void runTamperTest()
+runHeaderTamperTest();
+
+
+void runCipherTextTamperTest()
 {
     Console.WriteLine("Tamper ciphertext test:");
 
@@ -63,5 +66,27 @@ void runTamperTest()
     catch (AuthenticationTagMismatchException)
     {
         Console.WriteLine("PASS: Altered ciphertext was rejected.");
+    }
+}
+
+void runHeaderTamperTest()
+{
+    Console.WriteLine("Header tampering test:");
+    Console.WriteLine("Original header: meter-id=001");
+    Console.WriteLine("Altered header:  meter-id=999");
+
+    byte[] alteredHeader = Encoding.UTF8.GetBytes("meter-id=999");
+    byte[] headerTestOutput = new byte[ciphertext.Length];
+
+    try
+    {
+        aes.Decrypt(nonce, ciphertext, tag, headerTestOutput, alteredHeader);
+
+        Console.WriteLine("FAIL: Altered header was accepted.");
+        Environment.ExitCode = 1;
+    }
+    catch (AuthenticationTagMismatchException)
+    {
+        Console.WriteLine("PASS: Altered header was rejected.");
     }
 }
