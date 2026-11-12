@@ -36,3 +36,30 @@ string recoveredMessage = Encoding.UTF8.GetString(decrypted);
 
 Console.WriteLine($"Recovered message: {recoveredMessage}");
 Console.WriteLine($"Messages match: {message == recoveredMessage}");
+
+runTamperTest();
+
+void runTamperTest()
+{
+    Console.WriteLine("Tamper ciphertext test:");
+
+    byte[] tamperedCiphertext = (byte[])ciphertext.Clone();
+    tamperedCiphertext[0] ^= 1;//change one bit
+
+    byte[] tamperedOutput = new byte[tamperedCiphertext.Length];
+
+    Console.WriteLine($"Original Ciphertext:{Convert.ToHexString(ciphertext)}");
+    Console.WriteLine($"Tampered Ciphertext:{Convert.ToHexString(tamperedCiphertext)}");
+
+    try
+    {
+        aes.Decrypt(nonce, tamperedCiphertext, tag, tamperedOutput);
+
+        Console.WriteLine("FAIL: Altered ciphertext was accepted.");
+        Environment.ExitCode = 1;
+    }
+    catch (AuthenticationTagMismatchException)
+    {
+        Console.WriteLine("PASS: Altered ciphertext was rejected.");
+    }
+}
