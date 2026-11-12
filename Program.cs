@@ -21,3 +21,9 @@ byte[] tag = new byte[16];
 
 Console.WriteLine("Ciphertext buffer: " + ciphertext.Length + " bytes");
 Console.WriteLine("Tag buffer: " + tag.Length + " bytes");
+
+using var aes = new AesGcm(key, tag.Length);
+
+aes.Encrypt(nonce, plaintext, ciphertext, tag);
+
+Console.WriteLine("Ciphertext: " + Convert.ToHexString(ciphertext));
