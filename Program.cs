@@ -27,3 +27,13 @@ using var aes = new AesGcm(key, tag.Length);
 aes.Encrypt(nonce, plaintext, ciphertext, tag);
 
 Console.WriteLine("Ciphertext: " + Convert.ToHexString(ciphertext));
+
+byte[] decrypted = new byte[ciphertext.Length];
+
+aes.Decrypt(nonce, ciphertext, tag, decrypted);
+
+string recoveredMessage = Encoding.UTF8.GetString(decrypted);
+
+Console.WriteLine("Recovered message: " + recoveredMessage);
+Console.WriteLine("Messages match: " + (message == recoveredMessage));
+
