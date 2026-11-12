@@ -11,3 +11,7 @@ Console.WriteLine("Message bytes: " + Convert.ToHexString(plaintext));
 byte[] key = RandomNumberGenerator.GetBytes(16);
 
 Console.WriteLine("Key length in bits: " + (key.Length * 8));
+
+byte[] nonce = RandomNumberGenerator.GetBytes(12);
+
+Console.WriteLine("Nonce: " + Convert.ToHexString(nonce));
