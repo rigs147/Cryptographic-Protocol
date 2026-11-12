@@ -22,15 +22,17 @@ byte[] tag = new byte[16];
 Console.WriteLine($"Ciphertext buffer: {ciphertext.Length} bytes");
 Console.WriteLine($"Tag buffer: {tag.Length} bytes");
 
+byte[] associatedData = Encoding.UTF8.GetBytes("meter-id=001");
+
 using var aes = new AesGcm(key, tag.Length);
 
-aes.Encrypt(nonce, plaintext, ciphertext, tag);
+aes.Encrypt(nonce, plaintext, ciphertext, tag, associatedData);
 
 Console.WriteLine($"Ciphertext: {Convert.ToHexString(ciphertext)}");
 
 byte[] decrypted = new byte[ciphertext.Length];
 
-aes.Decrypt(nonce, ciphertext, tag, decrypted);
+aes.Decrypt(nonce, ciphertext, tag, decrypted, associatedData);
 
 string recoveredMessage = Encoding.UTF8.GetString(decrypted);
 
@@ -53,7 +55,7 @@ void runTamperTest()
 
     try
     {
-        aes.Decrypt(nonce, tamperedCiphertext, tag, tamperedOutput);
+        aes.Decrypt(nonce, tamperedCiphertext, tag, tamperedOutput, associatedData);
 
         Console.WriteLine("FAIL: Altered ciphertext was accepted.");
         Environment.ExitCode = 1;
