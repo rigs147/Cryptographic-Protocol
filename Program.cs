@@ -15,3 +15,9 @@ Console.WriteLine("Key length in bits: " + (key.Length * 8));
 byte[] nonce = RandomNumberGenerator.GetBytes(12);
 
 Console.WriteLine("Nonce: " + Convert.ToHexString(nonce));
+
+byte[] ciphertext = new byte[plaintext.Length];
+byte[] tag = new byte[16];
+
+Console.WriteLine("Ciphertext buffer: " + ciphertext.Length + " bytes");
+Console.WriteLine("Tag buffer: " + tag.Length + " bytes");
