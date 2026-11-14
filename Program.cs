@@ -2,6 +2,10 @@
 using System.Security.Cryptography;
 using System.Buffers.Binary;
 
+var flawedMode = args.Contains("flawed");
+
+Console.WriteLine($"Mode: {(flawedMode ? "FLAWED" : "CORRECT")}");
+
 var message = "meter=001;reading=01234";
 
 var plaintext = Encoding.UTF8.GetBytes(message);
@@ -44,6 +48,8 @@ Console.WriteLine($"Messages match: {message == recoveredMessage}");
 runCipherTextTamperTest();
 
 runHeaderTamperTest();
+
+runSecondMessageTest();
 
 void runCipherTextTamperTest()
 {
@@ -90,6 +96,118 @@ void runHeaderTamperTest()
     {
         Console.WriteLine("PASS: Altered header was rejected.");
     }
+}
+
+void runSecondMessageTest()
+{
+    Console.WriteLine("Second message test:");
+
+    if (!flawedMode)
+    {
+        messageCounter = checked(messageCounter + 1);
+    }
+    
+    var secondNonce = CreateNonce(messageCounter);
+
+    var secondPlaintext =
+        Encoding.UTF8.GetBytes("meter=001;reading=05678");
+
+    var secondCiphertext = new byte[secondPlaintext.Length];
+    var secondTag = new byte[16];
+
+    aes.Encrypt(
+        secondNonce,
+        secondPlaintext,
+        secondCiphertext,
+        secondTag,
+        associatedData);
+
+    var secondDecrypted = new byte[secondCiphertext.Length];
+
+    aes.Decrypt(
+        secondNonce,
+        secondCiphertext,
+        secondTag,
+        secondDecrypted,
+        associatedData);
+
+    Console.WriteLine($"First nonce:  {Convert.ToHexString(nonce)}");
+    Console.WriteLine($"Second nonce: {Convert.ToHexString(secondNonce)}");
+
+    var secondMatches = secondPlaintext.SequenceEqual(secondDecrypted);
+    Console.WriteLine($"Second message matches: {secondMatches}");
+
+    if (!secondMatches)
+    {
+        Environment.ExitCode = 1;
+    }
+
+    RunNonceReuseAttackTest(
+    plaintext,
+    ciphertext,
+    secondCiphertext,
+    secondPlaintext,
+    flawedMode);
+}
+
+static void RunNonceReuseAttackTest(
+    byte[] knownPlaintext,
+    byte[] firstCiphertext,
+    byte[] secondCiphertext,
+    byte[] actualSecondPlaintext,
+    bool flawedMode)
+{
+    Console.WriteLine("Nonce reuse attack:");
+
+    var attackOutput = RecoverSecondMessage(
+        knownPlaintext,
+        firstCiphertext,
+        secondCiphertext);
+
+    var attackSucceeded =
+        attackOutput.SequenceEqual(actualSecondPlaintext);
+
+    Console.WriteLine($"Mode: {(flawedMode ? "FLAWED" : "CORRECT")}");
+    Console.WriteLine($"Known first message: {Encoding.UTF8.GetString(knownPlaintext)}");
+    Console.WriteLine($"Recovered bytes: {Convert.ToHexString(attackOutput)}");
+    Console.WriteLine($"Actual second message: {Encoding.UTF8.GetString(actualSecondPlaintext)}");
+    Console.WriteLine($"Attack recovered second message: {attackSucceeded}");
+
+    if (attackSucceeded)
+    {
+        Console.WriteLine($"Recovered text: {Encoding.UTF8.GetString(attackOutput)}");
+    }
+
+    var expectedOutcome = attackSucceeded == flawedMode;
+    Console.WriteLine($"Attack behaved as expected: {expectedOutcome}");
+
+    if (!expectedOutcome)
+    {
+        Environment.ExitCode = 1;
+    }
+}
+
+static byte[] RecoverSecondMessage(
+    byte[] knownPlaintext,
+    byte[] firstCiphertext,
+    byte[] secondCiphertext)
+{
+    var recovered = new byte[secondCiphertext.Length];
+
+    for (var i = 0; i < recovered.Length; i++)
+    {
+        // Recover keystream byte using known message and its ciphertext.
+        byte recoveredKeystreamByte = (byte)(
+            knownPlaintext[i] ^ firstCiphertext[i]);
+
+        // Use same keystream byte to recover second message.
+        byte recoveredPlaintextByte = (byte)(
+            secondCiphertext[i] ^ recoveredKeystreamByte);
+
+        recovered[i] = recoveredPlaintextByte;
+    }
+
+    return recovered;
 }
 
 byte[] CreateNonce(int messageCounter)
