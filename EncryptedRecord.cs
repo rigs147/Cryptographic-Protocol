@@ -1,6 +1,7 @@
 using System.Text.Json;
 
 public sealed record EncryptedRecord(
+    string Header, byte[] Nonce, byte[] Ciphertext, byte[] Tag)
 {
     public string ToJson() => JsonSerializer.Serialize(this);
 
