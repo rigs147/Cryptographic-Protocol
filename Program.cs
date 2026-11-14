@@ -159,7 +159,7 @@ static void RunNonceReuseAttackTest(
 {
     Console.WriteLine("Nonce reuse attack:");
 
-    var attackOutput = RecoverSecondMessage(
+    var attackOutput = NonceReuseAttack.RecoverSecondMessage(
         knownPlaintext,
         firstCiphertext,
         secondCiphertext);
@@ -185,29 +185,6 @@ static void RunNonceReuseAttackTest(
     {
         Environment.ExitCode = 1;
     }
-}
-
-static byte[] RecoverSecondMessage(
-    byte[] knownPlaintext,
-    byte[] firstCiphertext,
-    byte[] secondCiphertext)
-{
-    var recovered = new byte[secondCiphertext.Length];
-
-    for (var i = 0; i < recovered.Length; i++)
-    {
-        // Recover keystream byte using known message and its ciphertext.
-        byte recoveredKeystreamByte = (byte)(
-            knownPlaintext[i] ^ firstCiphertext[i]);
-
-        // Use same keystream byte to recover second message.
-        byte recoveredPlaintextByte = (byte)(
-            secondCiphertext[i] ^ recoveredKeystreamByte);
-
-        recovered[i] = recoveredPlaintextByte;
-    }
-
-    return recovered;
 }
 
 byte[] CreateNonce(int messageCounter)
