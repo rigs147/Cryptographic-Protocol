@@ -1,4 +1,4 @@
-# Cryptography Theory & Practice - CA2 - DEV
+# Cryptography Theory & Practice - CA2
 
 C# AES-GCM demo with a deliberate nonce-reuse flaw.
 
