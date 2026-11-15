@@ -55,7 +55,6 @@ public static class ProtocolDemo
         var second = EncryptedRecord.FromJson(sender.Encrypt(secondPlaintext).ToJson());
         var secondNonce = second.Nonce;
         var secondCiphertext = second.Ciphertext;
-        var secondTag = second.Tag;
 
         Console.WriteLine($"First nonce:  {Convert.ToHexString(nonce)}");
         Console.WriteLine($"Second nonce: {Convert.ToHexString(secondNonce)}");
@@ -70,7 +69,7 @@ public static class ProtocolDemo
                 secondRecordPassed = !flawedMode && received.SequenceEqual(secondPlaintext);
                 Console.WriteLine($"Second message matches: {secondRecordPassed}");
             }
-            catch (InvalidOperationException)
+            catch (InvalidRecordException)
             {
                 //In flawed mode, the receiver should reject the repeated counter.
                 secondRecordPassed = flawedMode;

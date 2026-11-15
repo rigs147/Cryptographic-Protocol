@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 
 public static class RecordTests
 {
@@ -195,13 +194,9 @@ public static class RecordTests
             operation();
             return false;
         }
-        catch (Exception error) when (
-            error is ArgumentException
-            or AuthenticationTagMismatchException
-            or JsonException
-            or InvalidOperationException)
+        catch (InvalidRecordException error)
         {
-            return true;
+            return error.Message == "Invalid record.";
         }
     }
 }

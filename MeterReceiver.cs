@@ -21,30 +21,39 @@ public sealed class MeterReceiver : IDisposable
 
     public byte[] Decrypt(EncryptedRecord record)
     {
-        ArgumentNullException.ThrowIfNull(record);
-        if (record.Header is null || record.Nonce is null ||
+        if (record is null || record.Header is null || record.Nonce is null ||
             record.Ciphertext is null || record.Tag is null ||
             record.Nonce.Length != 12 || record.Tag.Length != 16)
         {
-            throw new ArgumentException("Invalid message record.");
+            throw new InvalidRecordException();
         }
 
         var plaintext = new byte[record.Ciphertext.Length];
-        aesGcm.Decrypt(record.Nonce, record.Ciphertext, record.Tag,
-            plaintext, Encoding.UTF8.GetBytes(record.Header));
+
+        try
+        {
+            aesGcm.Decrypt(record.Nonce, record.Ciphertext, record.Tag,
+                plaintext, Encoding.UTF8.GetBytes(record.Header));
+        }
+        catch (AuthenticationTagMismatchException)
+        {
+            // Return the same error when authentication fails.
+            CryptographicOperations.ZeroMemory(plaintext);
+            throw new InvalidRecordException();
+        }
 
         if (!string.Equals(record.Header, expectedHeader, StringComparison.Ordinal) ||
             !record.Nonce.AsSpan(0, 8).SequenceEqual(expectedSenderId))
         {
             CryptographicOperations.ZeroMemory(plaintext);
-            throw new AuthenticationTagMismatchException("Unexpected meter context.");
+            throw new InvalidRecordException();
         }
 
         int counter = BinaryPrimitives.ReadInt32BigEndian(record.Nonce.AsSpan(8, 4));
         if (counter <= highestAcceptedCounter)
         {
             CryptographicOperations.ZeroMemory(plaintext);
-            throw new InvalidOperationException("Replayed or out-of-order record.");
+            throw new InvalidRecordException();
         }
 
         highestAcceptedCounter = counter;

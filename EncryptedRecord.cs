@@ -7,7 +7,19 @@ public sealed record EncryptedRecord(
 
     public static EncryptedRecord FromJson(string json)
     {
-        return JsonSerializer.Deserialize<EncryptedRecord>(json)
-            ?? throw new JsonException("A message record is required.");
+        if (json is null)
+        {
+            throw new InvalidRecordException();
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<EncryptedRecord>(json)
+                ?? throw new InvalidRecordException();
+        }
+        catch (JsonException)
+        {
+            throw new InvalidRecordException();
+        }
     }
 }
