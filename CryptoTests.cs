@@ -21,8 +21,7 @@ public static class CryptoTests
 
         Console.WriteLine($"Recovered message: {Encoding.UTF8.GetString(decrypted)}");
         Console.WriteLine($"Messages match: {messagesMatch}");
-
-        //Run every check, even when an earlier check has failed.
+        
         var ciphertextPassed =
             RunCiphertextTamperTest(aesGcm, nonce, ciphertext, tag, authenticatedHeader);
 
