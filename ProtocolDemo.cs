@@ -168,9 +168,12 @@ public static class ProtocolDemo
         if (prefixMatches)
         {
             Console.WriteLine($"Recovered prefix: {Encoding.UTF8.GetString(recovered)}");
+            Console.WriteLine("The reading digits are not recovered by this attempt.");
         }
-
-        Console.WriteLine("The reading digits are not recovered by this attempt.");
+        else
+        {
+            Console.WriteLine("The prefix was not recovered.");
+        }
 
         return prefixMatches == flawedMode;
     }
