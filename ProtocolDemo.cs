@@ -88,6 +88,12 @@ public static class ProtocolDemo
             return exitCode;
         }
 
+        //Check recovery when only the first message's prefix is known.
+        var partialRecoveryPassed = RunPartialRecoveryDemo(
+            ciphertext, secondCiphertext, secondPlaintext, flawedMode);
+
+        testsPassed = testsPassed && partialRecoveryPassed;
+
         //Recovery should succeed in flawed mode and fail in correct mode.
         var expectedOutcome = CryptoTests.VerifyAttackOutcome(attackSucceeded, flawedMode);
         if (!expectedOutcome)
@@ -135,5 +141,37 @@ public static class ProtocolDemo
         Console.WriteLine($"Bytewise XOR operations: {recovered.Length * 2}");
         Console.WriteLine($"Recovery time (ms): {elapsed.TotalMilliseconds:F6}");
         return attackSucceeded;
+    }
+
+    private static bool RunPartialRecoveryDemo(
+        byte[] firstCiphertext,
+        byte[] secondCiphertext,
+        byte[] actualSecondPlaintext,
+        bool flawedMode)
+    {
+        var knownPrefix = Encoding.UTF8.GetBytes("meter=001;reading=");
+
+        var recovered = NonceReuseAttack.RecoverSecondMessage(
+            knownPrefix, firstCiphertext, secondCiphertext);
+
+        var expectedPrefix = actualSecondPlaintext
+            .Take(knownPrefix.Length)
+            .ToArray();
+
+        var prefixMatches = recovered.SequenceEqual(expectedPrefix);
+
+        Console.WriteLine("Partial plaintext recovery:");
+        Console.WriteLine($"Known first prefix: {Encoding.UTF8.GetString(knownPrefix)}");
+        Console.WriteLine($"Bytes attempted: {recovered.Length}");
+        Console.WriteLine($"Second prefix matches: {prefixMatches}");
+
+        if (prefixMatches)
+        {
+            Console.WriteLine($"Recovered prefix: {Encoding.UTF8.GetString(recovered)}");
+        }
+
+        Console.WriteLine("The reading digits are not recovered by this attempt.");
+
+        return prefixMatches == flawedMode;
     }
 }

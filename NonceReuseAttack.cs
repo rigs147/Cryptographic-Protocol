@@ -5,15 +5,16 @@ public static class NonceReuseAttack
         byte[] firstCiphertext,
         byte[] secondCiphertext)
     {
-        byte[] recovered = new byte[secondCiphertext.Length];
+        //Recover only the positions where the first plaintext is known.
+        byte[] recovered = new byte[knownPlaintext.Length];
 
         for (int i = 0; i < recovered.Length; i++)
         {
-            // Recover keystream byte using known message and its ciphertext.
+            //Recover a keystream byte using the known plaintext.
             byte recoveredKeystreamByte = (byte)(
                 knownPlaintext[i] ^ firstCiphertext[i]);
 
-            // Use same keystream byte to recover second message.
+            //Use that keystream byte to recover the corresponding byte.
             byte recoveredPlaintextByte = (byte)(
                 secondCiphertext[i] ^ recoveredKeystreamByte);
 
