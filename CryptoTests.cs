@@ -32,10 +32,16 @@ public static class CryptoTests
         var additionalChecksPassed =
             RunAdditionalRejectionTests(aesGcm, key, nonce, ciphertext, tag, authenticatedHeader);
 
+        var knownAnswerPassed = RunKnownAnswerTest();
+        
+        var knownAnswerWithAadPassed = RunKnownAnswerTestWithAad();
+
         return messagesMatch
             && ciphertextPassed
             && headerPassed
-            && additionalChecksPassed;
+            && additionalChecksPassed
+            && knownAnswerPassed
+            && knownAnswerWithAadPassed;
     }
 
     public static bool IsRecoveredMessage(byte[] recovered, byte[] expected)
@@ -127,6 +133,80 @@ public static class CryptoTests
 
         return passed;
     }
+
+    //McGrew and Viega (2005), Appendix B, Test Case 2.
+    private static bool RunKnownAnswerTest()
+    {
+        Console.WriteLine("AES-GCM known-answer test:");
+        
+        var testKey = new byte[16];
+        var testNonce = new byte[12];
+        var testPlaintext = new byte[16];
+        var expectedCiphertext = Convert.FromHexString(ExpectedCiphertextHex);
+        var expectedTag = Convert.FromHexString(ExpectedTagHex);
+        var actualCiphertext = new byte[testPlaintext.Length];
+        var actualTag = new byte[16];
+
+        using var testAes = new AesGcm(testKey, actualTag.Length);
+        testAes.Encrypt(
+            testNonce, testPlaintext, actualCiphertext, actualTag, Array.Empty<byte>());
+        
+        var ciphertextMatches = actualCiphertext.SequenceEqual(expectedCiphertext);
+        var tagMatches = actualTag.SequenceEqual(expectedTag);
+        var passed = ciphertextMatches && tagMatches;
+        
+        Console.WriteLine($"Expected ciphertext: {Convert.ToHexString(expectedCiphertext)}");
+        Console.WriteLine($"Actual ciphertext:   {Convert.ToHexString(actualCiphertext)}");
+        Console.WriteLine($"Ciphertext matches: {ciphertextMatches}");
+        Console.WriteLine($"Expected tag: {Convert.ToHexString(expectedTag)}");
+        Console.WriteLine($"Actual tag:   {Convert.ToHexString(actualTag)}");
+        Console.WriteLine($"Tag matches: {tagMatches}");
+        Console.WriteLine(passed
+            ? "PASS: Published vector matched."
+            : "FAIL: Published vector did not match.");
+        
+        return passed;
+    }
+    
+    //McGrew and Viega (2005), Appendix B, Test Case 4.
+    //Check encryption and decryption with additional authenticated data.
+    private static bool RunKnownAnswerTestWithAad()
+    {
+        var key = Convert.FromHexString("FEFFE9928665731C6D6A8F9467308308");
+        var nonce = Convert.FromHexString("CAFEBABEFACEDBADDECAF888");
+        var plaintext = Convert.FromHexString(
+            "D9313225F88406E5A55909C5AFF5269A86A7A9531534F7DA2E4C303D8A318A721C3C0C95956809532FCF0E2449A6B525B16AEDF5AA0DE657BA637B39");
+        
+        var aad = Convert.FromHexString(
+            "FEEDFACEDEADBEEFFEEDFACEDEADBEEFABADDAD2");
+        
+        var expectedCiphertext = Convert.FromHexString(
+            "42831EC2217774244B7221B784D0D49CE3AA212F2C02A4E035C17E2329ACA12E21D514B25466931C7D8F6A5AAC84AA051BA30B396A0AAC973D58E091");
+        
+        var expectedTag = Convert.FromHexString(
+            "5BC94FBC3221A5DB94FAE95AE7121A47");
+        
+        // Encrypt the test message.
+        using var aes = new AesGcm(key, 16);
+        
+        var ciphertext = new byte[plaintext.Length];
+        
+        var tag = new byte[16];
+        aes.Encrypt(nonce, plaintext, ciphertext, tag, aad);
+        
+        var decrypted = new byte[plaintext.Length];
+        aes.Decrypt(nonce, expectedCiphertext, expectedTag, decrypted, aad);
+        
+        bool ciphertextMatches = ciphertext.SequenceEqual(expectedCiphertext);
+        bool tagMatches = tag.SequenceEqual(expectedTag);
+        bool plaintextMatches = decrypted.SequenceEqual(plaintext);
+        bool passed = ciphertextMatches && tagMatches && plaintextMatches;
+        
+        Console.WriteLine($"Published AAD vector (case 4) matched: {passed}");
+        
+        return passed;
+    }
+
 
     private static bool ExpectAuthenticationRejection(string testName, Action attempt)
     {
