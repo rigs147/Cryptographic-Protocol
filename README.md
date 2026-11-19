@@ -14,7 +14,7 @@ dotnet run flawed
 ```
 
 - `dotnet run` uses unique nonces. Recovery should fail.
-- `dotnet run flawed` deliberately reuses a nonce. Recovery should succeed.
+- `dotnet run flawed` models the nonce reuse caused by a restart that loses counter state while retaining the same key. Recovery should succeed.
 
 Both commands should finish with `Regression checks passed: True`
 and exit code `0` as both produce their expected results.
